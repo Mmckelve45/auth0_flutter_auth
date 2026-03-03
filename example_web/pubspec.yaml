@@ -1,0 +1,18 @@
+name: auth0_flutter_auth_example_web
+description: Web example for auth0_flutter_auth using redirect-based flow.
+
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  auth0_flutter_auth:
+    path: ../
+  go_router: ^14.0.0
+
+flutter:
+  uses-material-design: true
