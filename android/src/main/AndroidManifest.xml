@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.auth0.flutter_auth">
+
+    <application>
+        <activity
+            android:name=".CallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <!-- Users must add intent-filter in their app's AndroidManifest.xml:
+                 <intent-filter>
+                     <action android:name="android.intent.action.VIEW" />
+                     <category android:name="android.intent.category.DEFAULT" />
+                     <category android:name="android.intent.category.BROWSABLE" />
+                     <data android:scheme="${applicationId}"
+                           android:host="callback" />
+                 </intent-filter>
+            -->
+        </activity>
+    </application>
+</manifest>
