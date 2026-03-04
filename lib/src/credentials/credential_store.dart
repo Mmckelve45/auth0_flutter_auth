@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
@@ -17,6 +18,10 @@ class CredentialStore {
   final AuthApi _api;
   final CredentialStoreOptions _options;
 
+  /// Broadcast stream controller for credential changes.
+  /// Emits [Credentials] when stored/refreshed, or `null` when cleared.
+  final _onChangeController = StreamController<Credentials?>.broadcast();
+
   CredentialStore({
     required AuthApi api,
     CredentialStoreOptions? options,
@@ -30,11 +35,24 @@ class CredentialStore {
 
   String get _storageKey => _options.storageKey;
 
+  /// Stream that emits whenever credentials change.
+  ///
+  /// Emits [Credentials] after [storeCredentials] or [renewCredentials],
+  /// and `null` after [clearCredentials]. Does **not** emit the current
+  /// state on listen — use [authStateChanges] on [Auth0Client] for that.
+  Stream<Credentials?> get onCredentialsChanged => _onChangeController.stream;
+
+  /// Closes the internal stream controller. Called by [Auth0Client.close].
+  void dispose() {
+    _onChangeController.close();
+  }
+
   /// Stores credentials securely.
   Future<void> storeCredentials(Credentials credentials) async {
     try {
       final json = jsonEncode(credentials.toJson());
       await _storage.write(key: _storageKey, value: json);
+      _onChangeController.add(credentials);
     } catch (e) {
       throw CredentialStoreException.storageError(cause: e);
     }
@@ -137,6 +155,7 @@ class CredentialStore {
   Future<void> clearCredentials() async {
     try {
       await _storage.delete(key: _storageKey);
+      _onChangeController.add(null);
     } catch (e) {
       throw CredentialStoreException.storageError(cause: e);
     }

@@ -27,7 +27,11 @@ class BrowserPlatform {
       if (e.code == 'USER_CANCELLED' || e.code == 'CANCELLED') {
         throw WebAuthException.cancelled();
       }
-      throw WebAuthException.unknown(cause: e);
+      throw WebAuthException(
+        message: e.message ?? 'Unknown web auth error (${e.code})',
+        code: 'a0.${e.code?.toLowerCase() ?? 'unknown'}',
+        cause: e,
+      );
     }
   }
 

@@ -1,21 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.auth0.flutter_auth">
 
-    <application>
-        <activity
-            android:name=".CallbackActivity"
-            android:exported="true"
-            android:launchMode="singleTask"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
-            <!-- Users must add intent-filter in their app's AndroidManifest.xml:
-                 <intent-filter>
-                     <action android:name="android.intent.action.VIEW" />
-                     <category android:name="android.intent.category.DEFAULT" />
-                     <category android:name="android.intent.category.BROWSABLE" />
-                     <data android:scheme="${applicationId}"
-                           android:host="callback" />
-                 </intent-filter>
-            -->
-        </activity>
-    </application>
+    <!-- CallbackActivity is declared here without an intent-filter.
+         The consuming app MUST re-declare it in their own AndroidManifest.xml
+         with an intent-filter matching their callback URL scheme.
+         See the example app's AndroidManifest.xml for reference. -->
+
 </manifest>

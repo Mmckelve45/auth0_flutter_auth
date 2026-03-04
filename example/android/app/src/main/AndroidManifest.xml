@@ -25,6 +25,23 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Auth0 callback activity — intercepts the redirect URI after login/logout.
+             The android:scheme must match your AUTH0_MOBILE_CALLBACK_SCHEME from .env.
+             See: https://auth0.com/docs/get-started/authentication-and-authorization-flow/add-login-to-your-native-mobile-app -->
+        <activity
+            android:name="com.auth0.flutter_auth.CallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="com.auth0sdk.app" />
+            </intent-filter>
+        </activity>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

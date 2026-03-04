@@ -240,7 +240,7 @@ class WebAuth {
     _pendingRedirectUrl = null;
   }
 
-  String get _defaultRedirectUrl => '$_defaultCallbackScheme://callback';
+  String get _defaultRedirectUrl => '$_defaultCallbackScheme:/callback';
 
   String get _defaultCallbackScheme =>
       _domain.replaceAll('.', '-').replaceAll(':', '-');

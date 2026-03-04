@@ -4,6 +4,7 @@ import '../models/user_profile.dart';
 import '../models/database_user.dart';
 import '../models/challenge.dart';
 import '../models/sso_credentials.dart';
+import '../models/passkey_challenge.dart';
 
 class AuthApi {
   final Auth0HttpClient _client;
@@ -233,6 +234,80 @@ class AuthApi {
     };
     final json = await _client.post('/oauth/token', body);
     return SSOCredentials.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Passkeys (Limited Early Access)
+  // ---------------------------------------------------------------------------
+
+  Future<PasskeyChallenge> passkeyRegisterChallenge({
+    required String email,
+    String? name,
+    String? realm,
+  }) async {
+    final body = <String, dynamic>{
+      'client_id': _clientId,
+      'email': email,
+      if (name != null) 'name': name,
+      if (realm != null) 'realm': realm,
+    };
+    final json = await _client.post('/passkey/register', body);
+    return PasskeyChallenge.fromJson(json);
+  }
+
+  Future<PasskeyChallenge> passkeyLoginChallenge({String? realm}) async {
+    final body = <String, dynamic>{
+      'client_id': _clientId,
+      if (realm != null) 'realm': realm,
+    };
+    final json = await _client.post('/passkey/challenge', body);
+    return PasskeyChallenge.fromJson(json);
+  }
+
+  Future<Credentials> authenticateWithPasskey({
+    required String authSession,
+    required Map<String, dynamic> authnResponse,
+    String? audience,
+    Set<String> scopes = const {},
+  }) async {
+    final body = <String, dynamic>{
+      'grant_type': 'urn:okta:params:oauth:grant-type:webauthn',
+      'client_id': _clientId,
+      'auth_session': authSession,
+      'authn_response': authnResponse,
+      if (audience != null) 'audience': audience,
+      if (scopes.isNotEmpty) 'scope': scopes.join(' '),
+    };
+    final json = await _client.post('/oauth/token', body);
+    return Credentials.fromJson(json);
+  }
+
+  Future<PasskeyChallenge> passkeyEnrollmentChallenge({
+    required String accessToken,
+  }) async {
+    final body = <String, dynamic>{
+      'type': 'public-key',
+    };
+    final json = await _client.post(
+      '/me/v1/authentication-methods',
+      body,
+      extraHeaders: {'Authorization': 'Bearer $accessToken'},
+    );
+    return PasskeyChallenge.fromJson(json);
+  }
+
+  Future<void> verifyPasskeyEnrollment({
+    required String authSession,
+    required Map<String, dynamic> authnResponse,
+  }) async {
+    final body = <String, dynamic>{
+      'auth_session': authSession,
+      'authn_response': authnResponse,
+    };
+    await _client.post(
+      '/me/v1/authentication-methods/passkey%7Cnew/verify',
+      body,
+    );
   }
 
   void close() => _client.close();

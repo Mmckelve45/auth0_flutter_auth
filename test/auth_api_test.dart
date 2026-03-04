@@ -400,6 +400,111 @@ void main() {
       );
     });
 
+    test('passkeyRegisterChallenge sends to /passkey/register', () async {
+      final mock = MockClient((request) async {
+        expect(request.url.path, '/passkey/register');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['client_id'], 'test_client');
+        expect(body['email'], 'user@example.com');
+        expect(body['name'], 'Test User');
+        return http.Response(
+          jsonEncode({
+            'authn_params_public_key': {
+              'challenge': 'ch1',
+              'rp': {'id': 'example.auth0.com'},
+            },
+            'auth_session': 'sess_register',
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final challenge = await api.passkeyRegisterChallenge(
+        email: 'user@example.com',
+        name: 'Test User',
+      );
+      expect(challenge.authSession, 'sess_register');
+      expect(challenge.authnParamsPublicKey['challenge'], 'ch1');
+    });
+
+    test('passkeyLoginChallenge sends to /passkey/challenge', () async {
+      final mock = MockClient((request) async {
+        expect(request.url.path, '/passkey/challenge');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['client_id'], 'test_client');
+        return http.Response(
+          jsonEncode({
+            'authn_params_public_key': {
+              'challenge': 'ch2',
+              'rpId': 'example.auth0.com',
+            },
+            'auth_session': 'sess_login',
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final challenge = await api.passkeyLoginChallenge();
+      expect(challenge.authSession, 'sess_login');
+    });
+
+    test('authenticateWithPasskey uses webauthn grant type', () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['grant_type'],
+            'urn:okta:params:oauth:grant-type:webauthn');
+        expect(body['client_id'], 'test_client');
+        expect(body['auth_session'], 'sess1');
+        expect(body['authn_response'], isA<Map>());
+        return http.Response(
+          jsonEncode({
+            'access_token': 'passkey_at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final creds = await api.authenticateWithPasskey(
+        authSession: 'sess1',
+        authnResponse: {'id': 'cred1', 'type': 'public-key'},
+      );
+      expect(creds.accessToken, 'passkey_at');
+    });
+
+    test('passkeyEnrollmentChallenge sends Bearer token', () async {
+      final mock = MockClient((request) async {
+        expect(request.url.path, '/me/v1/authentication-methods');
+        expect(request.headers['Authorization'], 'Bearer my_token');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['type'], 'public-key');
+        return http.Response(
+          jsonEncode({
+            'authn_params_public_key': {'challenge': 'enroll_ch'},
+            'auth_session': 'sess_enroll',
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final challenge =
+          await api.passkeyEnrollmentChallenge(accessToken: 'my_token');
+      expect(challenge.authSession, 'sess_enroll');
+    });
+
     test('loginWithPassword throws ApiException on error', () async {
       final mock = MockClient((request) async {
         return http.Response(

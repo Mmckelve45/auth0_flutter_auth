@@ -19,12 +19,16 @@ export 'src/credentials/credential_store_options.dart';
 // DPoP
 export 'src/dpop/dpop.dart';
 
+// Passkeys
+export 'src/passkeys/passkeys.dart';
+
 // Models
 export 'src/models/credentials.dart';
 export 'src/models/user_profile.dart';
 export 'src/models/database_user.dart';
 export 'src/models/challenge.dart';
 export 'src/models/sso_credentials.dart';
+export 'src/models/passkey_challenge.dart';
 
 // Exceptions
 export 'src/exceptions/auth0_exception.dart';
@@ -33,3 +37,4 @@ export 'src/exceptions/web_auth_exception.dart';
 export 'src/exceptions/credential_store_exception.dart';
 export 'src/exceptions/jwt_exception.dart';
 export 'src/exceptions/dpop_exception.dart';
+export 'src/exceptions/passkey_exception.dart';

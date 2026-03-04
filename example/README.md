@@ -29,7 +29,7 @@ This is a comprehensive example of how to integrate Auth0 authentication into a 
    ```
    YOUR_SCHEME://callback
    ```
-   (Replace `YOUR_SCHEME` with your app identifier, e.g., `com.example.auth0demo://callback`)
+   (Replace `YOUR_SCHEME` with your app identifier, e.g., `com.example.auth0demo:/callback`)
 
 4. Add the logout URL:
    ```
