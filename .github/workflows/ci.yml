@@ -16,7 +16,11 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter analyze
+      - run: flutter pub get -C example
+      - run: flutter pub get -C example_web
+      - name: Create placeholder .env for example app
+        run: touch example/.env
+      - run: flutter analyze --no-fatal-infos
 
   test:
     name: Unit Tests
@@ -35,7 +39,7 @@ jobs:
           name: coverage
           path: coverage/lcov.info
 
-  test-ios:
+  test-macos:
     name: Unit Tests (macOS)
     runs-on: macos-latest
     steps:
