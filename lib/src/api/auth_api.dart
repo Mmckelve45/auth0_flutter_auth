@@ -129,6 +129,7 @@ class AuthApi {
     required String code,
     String? audience,
     Set<String> scopes = const {},
+    Map<String, String>? parameters,
   }) async {
     final body = <String, dynamic>{
       'grant_type': 'http://auth0.com/oauth/grant-type/passwordless/otp',
@@ -138,6 +139,7 @@ class AuthApi {
       'realm': 'email',
       if (audience != null) 'audience': audience,
       if (scopes.isNotEmpty) 'scope': scopes.join(' '),
+      ...?parameters,
     };
     final json = await _client.post('/oauth/token', body);
     return Credentials.fromJson(json);
@@ -148,6 +150,7 @@ class AuthApi {
     required String code,
     String? audience,
     Set<String> scopes = const {},
+    Map<String, String>? parameters,
   }) async {
     final body = <String, dynamic>{
       'grant_type': 'http://auth0.com/oauth/grant-type/passwordless/otp',
@@ -157,6 +160,7 @@ class AuthApi {
       'realm': 'sms',
       if (audience != null) 'audience': audience,
       if (scopes.isNotEmpty) 'scope': scopes.join(' '),
+      ...?parameters,
     };
     final json = await _client.post('/oauth/token', body);
     return Credentials.fromJson(json);
