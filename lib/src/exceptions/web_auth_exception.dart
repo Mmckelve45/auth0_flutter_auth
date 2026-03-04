@@ -46,6 +46,42 @@ class WebAuthException extends Auth0Exception {
         cause: cause,
       );
 
+  // ── SPA adapter factories ──
+
+  static const _codeSpaNotInitialized = 'a0.spa_not_initialized';
+  static const _codeSpaLibraryMissing = 'a0.spa_library_missing';
+  static const _codePopupBlocked = 'a0.popup_blocked';
+  static const _codeLoginRequired = 'a0.login_required';
+
+  bool get isSpaNotInitialized => code == _codeSpaNotInitialized;
+  bool get isSpaLibraryMissing => code == _codeSpaLibraryMissing;
+  bool get isPopupBlocked => code == _codePopupBlocked;
+  bool get isLoginRequired => code == _codeLoginRequired;
+
+  factory WebAuthException.spaNotInitialized() => WebAuthException(
+        message:
+            'Auth0SpaAdapter has not been initialized. Call onLoad() first.',
+        code: _codeSpaNotInitialized,
+      );
+
+  factory WebAuthException.spaLibraryMissing() => WebAuthException(
+        message: 'auth0-spa-js is not loaded. Add the following script tag to '
+            'your web/index.html:\n'
+            '<script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>',
+        code: _codeSpaLibraryMissing,
+      );
+
+  factory WebAuthException.popupBlocked() => WebAuthException(
+        message: 'The login popup was blocked by the browser. '
+            'Ensure popups are allowed for this origin.',
+        code: _codePopupBlocked,
+      );
+
+  factory WebAuthException.loginRequired() => WebAuthException(
+        message: 'No valid session found. The user must log in.',
+        code: _codeLoginRequired,
+      );
+
   @override
   String toString() => 'WebAuthException(code: $code, message: $message)';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
+import 'package:auth0_flutter_auth/auth0_flutter_auth_web.dart';
 
 /// Web example: redirect-based flow using buildAuthorizeUrl + handleCallback.
 ///
@@ -25,6 +26,7 @@ const logoutReturnTo = 'http://localhost:5000/';
 // ────────────────────────────────
 
 late final Auth0Client auth0;
+final spaAdapter = Auth0SpaAdapter();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,10 +67,43 @@ class WebExampleApp extends StatelessWidget {
 
 // ─────── HOME SCREEN ───────
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  void _login(BuildContext context) {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _spaInitialized = false;
+  bool _popupLoading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpa();
+  }
+
+  Future<void> _initSpa() async {
+    try {
+      final creds = await spaAdapter.onLoad(
+        domain: auth0Domain,
+        clientId: auth0ClientId,
+        redirectUri: redirectUrl,
+        audience: 'https://$auth0Domain/api/v2/',
+      );
+      setState(() => _spaInitialized = true);
+      if (creds != null && mounted) {
+        await auth0.credentials.storeCredentials(creds);
+        if (mounted) context.go('/profile');
+      }
+    } catch (e) {
+      setState(() => _error = 'SPA init: $e');
+    }
+  }
+
+  void _loginWithRedirect() {
     // Build the authorize URL (stores PKCE state internally)
     final url = auth0.webAuth.buildAuthorizeUrl(
       redirectUrl: redirectUrl,
@@ -91,6 +126,27 @@ class HomeScreen extends StatelessWidget {
     debugPrint('Redirect to: $url');
   }
 
+  Future<void> _loginWithPopup() async {
+    setState(() {
+      _popupLoading = true;
+      _error = null;
+    });
+    try {
+      final creds = await spaAdapter.loginWithPopup(
+        audience: 'https://$auth0Domain/api/v2/',
+        scopes: {'openid', 'profile', 'email'},
+      );
+      await auth0.credentials.storeCredentials(creds);
+      if (mounted) context.go('/profile');
+    } on WebAuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = 'Popup login failed: $e');
+    } finally {
+      if (mounted) setState(() => _popupLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,19 +156,36 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'Redirect-based Auth0 login for Flutter Web',
+              'Auth0 Login for Flutter Web',
               style: TextStyle(fontSize: 18),
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => _login(context),
+              onPressed: () => _loginWithRedirect(),
               icon: const Icon(Icons.login),
-              label: const Text('Log In with Auth0'),
+              label: const Text('Log In (Redirect)'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed:
+                  _spaInitialized && !_popupLoading ? _loginWithPopup : null,
+              icon: _popupLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.open_in_new),
+              label: const Text('Log In (Popup)'),
             ),
             const SizedBox(height: 16),
             const Text(
-              'This will redirect you to Auth0 Universal Login.\n'
-              'After login, you\'ll be redirected back to /callback.',
+              'Redirect navigates away from the app.\n'
+              'Popup opens a new window and returns credentials directly.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),

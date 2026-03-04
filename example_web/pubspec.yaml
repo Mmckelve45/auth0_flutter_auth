@@ -4,7 +4,7 @@ description: Web example for auth0_flutter_auth using redirect-based flow.
 publish_to: 'none'
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
+  sdk: ">=3.3.0 <4.0.0"
   flutter: ">=3.16.0"
 
 dependencies:
