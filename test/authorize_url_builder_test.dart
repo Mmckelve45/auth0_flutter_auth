@@ -100,5 +100,40 @@ void main() {
       expect(url.queryParameters['invitation'],
           'https://test.auth0.com/invitation/abc');
     });
+
+    test('buildAuthorizeUrl includes connection parameter', () {
+      final url = builder.buildAuthorizeUrl(
+        redirectUrl: 'myapp://callback',
+        state: 'state123',
+        codeChallenge: 'challenge123',
+        connection: 'google-oauth2',
+      );
+
+      expect(url.queryParameters['connection'], 'google-oauth2');
+    });
+
+    test('buildAuthorizeUrl includes connectionScope parameter', () {
+      final url = builder.buildAuthorizeUrl(
+        redirectUrl: 'myapp://callback',
+        state: 'state123',
+        codeChallenge: 'challenge123',
+        connection: 'github',
+        connectionScope: 'public_repo user:email',
+      );
+
+      expect(url.queryParameters['connection'], 'github');
+      expect(url.queryParameters['connection_scope'], 'public_repo user:email');
+    });
+
+    test('buildAuthorizeUrl omits connection when null', () {
+      final url = builder.buildAuthorizeUrl(
+        redirectUrl: 'myapp://callback',
+        state: 'state123',
+        codeChallenge: 'challenge123',
+      );
+
+      expect(url.queryParameters.containsKey('connection'), false);
+      expect(url.queryParameters.containsKey('connection_scope'), false);
+    });
   });
 }

@@ -43,6 +43,8 @@ class WebAuth {
     String? invitationUrl,
     bool preferEphemeral = false,
     int? maxAge,
+    String? connection,
+    String? connectionScope,
     Map<String, String>? parameters,
     bool useHTTPS = false,
     String? scheme,
@@ -62,6 +64,8 @@ class WebAuth {
       invitationUrl: invitationUrl,
       maxAge: maxAge,
       nonce: nonce,
+      connection: connection,
+      connectionScope: connectionScope,
       parameters: parameters,
     );
 
@@ -161,6 +165,8 @@ class WebAuth {
     Set<String> scopes = const {'openid', 'profile', 'email'},
     String? organizationId,
     int? maxAge,
+    String? connection,
+    String? connectionScope,
     Map<String, String>? parameters,
   }) {
     _pendingPkce = Pkce.generate();
@@ -177,6 +183,8 @@ class WebAuth {
       organizationId: organizationId,
       maxAge: maxAge,
       nonce: _pendingNonce,
+      connection: connection,
+      connectionScope: connectionScope,
       parameters: parameters,
     );
   }

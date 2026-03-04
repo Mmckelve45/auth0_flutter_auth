@@ -14,6 +14,8 @@ class AuthorizeUrlBuilder {
     String? invitationUrl,
     int? maxAge,
     String? nonce,
+    String? connection,
+    String? connectionScope,
     Map<String, String>? parameters,
   }) {
     final queryParams = <String, String>{
@@ -29,6 +31,8 @@ class AuthorizeUrlBuilder {
       if (invitationUrl != null) 'invitation': invitationUrl,
       if (maxAge != null) 'max_age': maxAge.toString(),
       if (nonce != null) 'nonce': nonce,
+      if (connection != null) 'connection': connection,
+      if (connectionScope != null) 'connection_scope': connectionScope,
       ...?parameters,
     };
 

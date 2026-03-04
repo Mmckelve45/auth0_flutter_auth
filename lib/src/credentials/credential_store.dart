@@ -34,6 +34,10 @@ class CredentialStore {
   final AuthApi _api;
   final CredentialStoreOptions _options;
 
+  /// Tracks when the last successful biometric authentication occurred,
+  /// used by [BiometricPolicy.session] and [BiometricPolicy.appLifecycle].
+  DateTime? _lastBiometricAuth;
+
   /// Broadcast stream controller for credential changes.
   /// Emits [Credentials] when stored/refreshed, or `null` when cleared.
   final _onChangeController = StreamController<Credentials?>.broadcast();
@@ -95,9 +99,7 @@ class CredentialStore {
     int minTtl = 0,
     Set<String> scopes = const {},
   }) async {
-    if (_options.requireBiometrics) {
-      await _authenticateBiometric();
-    }
+    await _checkBiometricPolicy();
 
     final credentials = await _readCredentials();
     if (credentials == null) return null;
@@ -192,6 +194,17 @@ class CredentialStore {
     }
   }
 
+  /// Revokes the stored refresh token at the Auth0 server, then clears
+  /// all local credentials. If no refresh token is stored, only clears
+  /// locally.
+  Future<void> revokeAndClearCredentials() async {
+    final credentials = await _readCredentials();
+    if (credentials?.refreshToken != null) {
+      await _api.revokeToken(refreshToken: credentials!.refreshToken!);
+    }
+    await clearCredentials();
+  }
+
   /// Performs SSO token exchange using the stored refresh token.
   Future<SSOCredentials> ssoCredentials({
     Map<String, String>? parameters,
@@ -237,6 +250,42 @@ class CredentialStore {
 
     await storeCredentials(refreshed);
     return refreshed;
+  }
+
+  /// Resets the biometric session timestamp. Call this when the app returns
+  /// to the foreground if using [BiometricPolicy.appLifecycle].
+  void resetBiometricSession() {
+    _lastBiometricAuth = null;
+  }
+
+  Future<void> _checkBiometricPolicy() async {
+    // Legacy flag takes precedence for backwards compatibility
+    if (_options.requireBiometrics) {
+      await _authenticateBiometric();
+      return;
+    }
+
+    switch (_options.biometricPolicy) {
+      case BiometricPolicy.disabled:
+        return;
+      case BiometricPolicy.always:
+        await _authenticateBiometric();
+        return;
+      case BiometricPolicy.session:
+        if (_lastBiometricAuth != null) {
+          final elapsed =
+              DateTime.now().difference(_lastBiometricAuth!).inSeconds;
+          if (elapsed < _options.biometricSessionTimeout) return;
+        }
+        await _authenticateBiometric();
+        _lastBiometricAuth = DateTime.now();
+        return;
+      case BiometricPolicy.appLifecycle:
+        if (_lastBiometricAuth != null) return;
+        await _authenticateBiometric();
+        _lastBiometricAuth = DateTime.now();
+        return;
+    }
   }
 
   Future<void> _authenticateBiometric() async {

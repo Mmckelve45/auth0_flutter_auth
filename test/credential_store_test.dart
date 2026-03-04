@@ -110,6 +110,60 @@ void main() {
     });
   });
 
+  group('revokeToken', () {
+    test('revokeToken posts to /oauth/revoke', () async {
+      final mock = MockClient((request) async {
+        if (request.url.path == '/oauth/revoke') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['client_id'], 'test');
+          expect(body['token'], 'rt_to_revoke');
+          return http.Response(jsonEncode({}), 200);
+        }
+        return http.Response(jsonEncode({}), 200);
+      });
+
+      final httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test',
+        httpClient: mock,
+      );
+      final api = AuthApi(client: httpClient, clientId: 'test');
+
+      await api.revokeToken(refreshToken: 'rt_to_revoke');
+    });
+  });
+
+  group('BiometricPolicy', () {
+    test('BiometricPolicy.disabled is the default', () {
+      const options = CredentialStoreOptions();
+      expect(options.biometricPolicy, BiometricPolicy.disabled);
+    });
+
+    test('BiometricPolicy.session has default timeout of 300', () {
+      const options = CredentialStoreOptions(
+        biometricPolicy: BiometricPolicy.session,
+      );
+      expect(options.biometricSessionTimeout, 300);
+    });
+
+    test('BiometricPolicy.session accepts custom timeout', () {
+      const options = CredentialStoreOptions(
+        biometricPolicy: BiometricPolicy.session,
+        biometricSessionTimeout: 60,
+      );
+      expect(options.biometricSessionTimeout, 60);
+    });
+
+    test('all BiometricPolicy enum values exist', () {
+      expect(BiometricPolicy.values, containsAll([
+        BiometricPolicy.always,
+        BiometricPolicy.session,
+        BiometricPolicy.appLifecycle,
+        BiometricPolicy.disabled,
+      ]));
+    });
+  });
+
   group('CredentialStoreException factories', () {
     test('noCredentials', () {
       final e = CredentialStoreException.noCredentials();

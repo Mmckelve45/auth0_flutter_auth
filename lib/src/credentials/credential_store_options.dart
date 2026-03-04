@@ -6,6 +6,20 @@ enum SecureStorageAccessibility {
   whenPasscodeSetThisDevice,
 }
 
+enum BiometricPolicy {
+  /// Prompt biometric authentication on every [getCredentials] call.
+  always,
+
+  /// Prompt once, then re-prompt after [biometricSessionTimeout] seconds.
+  session,
+
+  /// Prompt once while the app remains in the foreground.
+  appLifecycle,
+
+  /// No biometric authentication (default).
+  disabled,
+}
+
 class CredentialStoreOptions {
   final bool requireBiometrics;
   final String biometricPrompt;
@@ -14,6 +28,8 @@ class CredentialStoreOptions {
   final bool biometricOnly;
   final SecureStorageAccessibility? accessibility;
   final String? accessGroup;
+  final BiometricPolicy biometricPolicy;
+  final int biometricSessionTimeout;
 
   const CredentialStoreOptions({
     this.requireBiometrics = false,
@@ -23,5 +39,7 @@ class CredentialStoreOptions {
     this.biometricOnly = true,
     this.accessibility,
     this.accessGroup,
+    this.biometricPolicy = BiometricPolicy.disabled,
+    this.biometricSessionTimeout = 300,
   });
 }

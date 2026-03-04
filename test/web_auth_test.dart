@@ -197,6 +197,78 @@ void main() {
       expect(launchedUrl, contains('audience='));
       expect(launchedUrl, contains('scope='));
     });
+
+    test('includes connection in authorize URL', () async {
+      final browser = _StatefulMockBrowser(code: 'code123');
+
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'access_token': 'at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+
+      await webAuth.login(connection: 'google-oauth2');
+
+      final launchedUrl = browser.lastLaunchedUrl!;
+      expect(launchedUrl, contains('connection=google-oauth2'));
+    });
+
+    test('includes connectionScope in authorize URL', () async {
+      final browser = _StatefulMockBrowser(code: 'code123');
+
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'access_token': 'at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+
+      await webAuth.login(
+        connection: 'github',
+        connectionScope: 'public_repo',
+      );
+
+      final launchedUrl = browser.lastLaunchedUrl!;
+      expect(launchedUrl, contains('connection=github'));
+      expect(launchedUrl, contains('connection_scope=public_repo'));
+    });
   });
 
   group('WebAuth.logout()', () {
@@ -326,6 +398,268 @@ void main() {
       );
     });
   });
+
+  // -------------------------------------------------------------------------
+  // WebAuth.login() — additional parameter coverage
+  // -------------------------------------------------------------------------
+
+  group('WebAuth.login() — parameter coverage', () {
+    WebAuth createWebAuthWithBrowser(_CapturingMockBrowser browser) {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'access_token': 'at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+      return WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+    }
+
+    test('includes organizationId in authorize URL', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login(organizationId: 'org_abc123');
+
+      expect(browser.lastLaunchedUrl!, contains('organization=org_abc123'));
+    });
+
+    test('includes invitationUrl in authorize URL', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login(
+        invitationUrl: 'https://test.auth0.com/invitation/abc',
+      );
+
+      final url = browser.lastLaunchedUrl!;
+      expect(url, contains('invitation='));
+    });
+
+    test('includes maxAge in authorize URL', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login(maxAge: 3600);
+
+      expect(browser.lastLaunchedUrl!, contains('max_age=3600'));
+    });
+
+    test('passes preferEphemeral to browser', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login(preferEphemeral: true);
+
+      expect(browser.lastPreferEphemeral, true);
+    });
+
+    test('does not pass preferEphemeral by default', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login();
+
+      expect(browser.lastPreferEphemeral, false);
+    });
+
+    test('uses HTTPS callback scheme when useHTTPS is true', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login(useHTTPS: true);
+
+      expect(browser.lastCallbackScheme, 'https');
+    });
+
+    test('uses custom scheme parameter', () async {
+      final browser = _CapturingMockBrowser(code: 'c');
+      final webAuth = createWebAuthWithBrowser(browser);
+
+      await webAuth.login(scheme: 'myapp');
+
+      expect(browser.lastCallbackScheme, 'myapp');
+    });
+
+    test('error callback with matching state returns proper error', () async {
+      final browser = _ErrorCallbackBrowser(
+        error: 'access_denied',
+        description: 'User denied access',
+      );
+
+      final mock = MockClient((_) async => http.Response('{}', 200));
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+
+      expect(
+        () => webAuth.login(),
+        throwsA(isA<WebAuthException>().having(
+          (e) => e.code,
+          'code',
+          'a0.access_denied',
+        )),
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // WebAuth.logout() — parameter coverage
+  // -------------------------------------------------------------------------
+
+  group('WebAuth.logout() — parameter coverage', () {
+    test('includes federated parameter in logout URL', () async {
+      final browser = _CapturingMockBrowser(code: '');
+      final mock = MockClient((_) async => http.Response('', 200));
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+
+      await webAuth.logout(federated: true);
+
+      final url = browser.lastLaunchedUrl!;
+      expect(url, contains('/v2/logout'));
+      expect(url, contains('federated'));
+    });
+
+    test('includes returnTo in logout URL', () async {
+      final browser = _CapturingMockBrowser(code: '');
+      final mock = MockClient((_) async => http.Response('', 200));
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+
+      await webAuth.logout(returnTo: 'myapp://home');
+
+      final url = browser.lastLaunchedUrl!;
+      expect(url, contains('returnTo='));
+    });
+
+    test('logout sets preferEphemeral to true', () async {
+      final browser = _CapturingMockBrowser(code: '');
+      final mock = MockClient((_) async => http.Response('', 200));
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: browser,
+      );
+
+      await webAuth.logout();
+
+      expect(browser.lastPreferEphemeral, true);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // WebAuth.buildAuthorizeUrl() — redirect flow param coverage
+  // -------------------------------------------------------------------------
+
+  group('WebAuth.buildAuthorizeUrl() — param coverage', () {
+    test('includes connection and connectionScope', () async {
+      final mock = MockClient((_) async => http.Response('{}', 200));
+      httpClient = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        httpClient: mock,
+      );
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final webAuth = WebAuth(
+        domain: 'test.auth0.com',
+        clientId: 'test_client',
+        api: api,
+        browser: mockBrowser,
+      );
+
+      final url = webAuth.buildAuthorizeUrl(
+        redirectUrl: 'https://myapp.com/callback',
+        connection: 'github',
+        connectionScope: 'public_repo',
+      );
+
+      expect(url.queryParameters['connection'], 'github');
+      expect(url.queryParameters['connection_scope'], 'public_repo');
+    });
+  });
+}
+
+/// Capturing mock browser — records all parameters from launchAuth.
+class _CapturingMockBrowser extends BrowserPlatform {
+  final String code;
+  String? lastLaunchedUrl;
+  String? lastCallbackScheme;
+  bool? lastPreferEphemeral;
+
+  _CapturingMockBrowser({required this.code});
+
+  @override
+  Future<String> launchAuth({
+    required String url,
+    required String callbackScheme,
+    bool preferEphemeral = false,
+  }) async {
+    lastLaunchedUrl = url;
+    lastCallbackScheme = callbackScheme;
+    lastPreferEphemeral = preferEphemeral;
+    final uri = Uri.parse(url);
+    final state = uri.queryParameters['state'] ?? '';
+    return '$callbackScheme://callback?code=$code&state=$state';
+  }
+
+  @override
+  Future<void> cancel() async {}
 }
 
 /// A mock browser that extracts the state param from the launched URL

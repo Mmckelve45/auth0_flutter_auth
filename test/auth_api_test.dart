@@ -504,6 +504,162 @@ void main() {
       expect(challenge.authSession, 'sess_enroll');
     });
 
+    test('verifyMfaOob sends mfa-oob grant', () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['grant_type'],
+            'http://auth0.com/oauth/grant-type/mfa-oob');
+        expect(body['client_id'], 'test_client');
+        expect(body['mfa_token'], 'mfa_tok');
+        expect(body['oob_code'], 'oob_123');
+        expect(body.containsKey('binding_code'), false);
+        return http.Response(
+          jsonEncode({
+            'access_token': 'oob_at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final creds = await api.verifyMfaOob(
+        mfaToken: 'mfa_tok',
+        oobCode: 'oob_123',
+      );
+      expect(creds.accessToken, 'oob_at');
+    });
+
+    test('verifyMfaOob includes optional bindingCode', () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['oob_code'], 'oob_123');
+        expect(body['binding_code'], '999888');
+        return http.Response(
+          jsonEncode({
+            'access_token': 'oob_at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final creds = await api.verifyMfaOob(
+        mfaToken: 'mfa_tok',
+        oobCode: 'oob_123',
+        bindingCode: '999888',
+      );
+      expect(creds.accessToken, 'oob_at');
+    });
+
+    test('verifyMfaRecoveryCode sends mfa-recovery-code grant', () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['grant_type'],
+            'http://auth0.com/oauth/grant-type/mfa-recovery-code');
+        expect(body['client_id'], 'test_client');
+        expect(body['mfa_token'], 'mfa_tok');
+        expect(body['recovery_code'], 'ABCD-EFGH-1234');
+        return http.Response(
+          jsonEncode({
+            'access_token': 'recovery_at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final creds = await api.verifyMfaRecoveryCode(
+        mfaToken: 'mfa_tok',
+        recoveryCode: 'ABCD-EFGH-1234',
+      );
+      expect(creds.accessToken, 'recovery_at');
+    });
+
+    test('revokeToken posts to /oauth/revoke', () async {
+      final mock = MockClient((request) async {
+        expect(request.url.path, '/oauth/revoke');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['client_id'], 'test_client');
+        expect(body['token'], 'rt_to_revoke');
+        return http.Response(jsonEncode({}), 200);
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await api.revokeToken(refreshToken: 'rt_to_revoke');
+    });
+
+    test('loginWithAppleToken uses apple authz code subject token type',
+        () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['grant_type'],
+            'urn:ietf:params:oauth:grant-type:token-exchange');
+        expect(body['subject_token'], 'apple_auth_code');
+        expect(body['subject_token_type'],
+            'http://auth0.com/oauth/token-type/apple-authz-code');
+        expect(body['audience'], 'https://api.example.com');
+        return http.Response(
+          jsonEncode({
+            'access_token': 'apple_at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final creds = await api.loginWithAppleToken(
+        authorizationCode: 'apple_auth_code',
+        audience: 'https://api.example.com',
+      );
+      expect(creds.accessToken, 'apple_at');
+    });
+
+    test('loginWithFacebookToken uses facebook session access token type',
+        () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['grant_type'],
+            'urn:ietf:params:oauth:grant-type:token-exchange');
+        expect(body['subject_token'], 'fb_token');
+        expect(body['subject_token_type'],
+            'http://auth0.com/oauth/token-type/facebook-info-session-access-token');
+        return http.Response(
+          jsonEncode({
+            'access_token': 'fb_at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      final creds = await api.loginWithFacebookToken(
+        accessToken: 'fb_token',
+      );
+      expect(creds.accessToken, 'fb_at');
+    });
+
     test('loginWithPassword throws ApiException on error', () async {
       final mock = MockClient((request) async {
         return http.Response(
@@ -530,6 +686,590 @@ void main() {
           true,
         )),
       );
+    });
+
+    // -----------------------------------------------------------------------
+    // Error handling per method
+    // -----------------------------------------------------------------------
+
+    test('verifyMfaOtp throws on invalid OTP', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_otp',
+            'error_description': 'Invalid OTP code.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.verifyMfaOtp(mfaToken: 'mfa_tok', otp: 'wrong'),
+        throwsA(isA<ApiException>().having(
+          (e) => e.isMultifactorCodeInvalid,
+          'isMultifactorCodeInvalid',
+          true,
+        )),
+      );
+    });
+
+    test('verifyMfaOob throws on invalid OOB code', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_otp',
+            'error_description': 'Invalid binding code.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.verifyMfaOob(mfaToken: 'mfa_tok', oobCode: 'bad'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('verifyMfaRecoveryCode throws on invalid recovery code', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_grant',
+            'error_description': 'Invalid recovery code.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.verifyMfaRecoveryCode(
+          mfaToken: 'mfa_tok',
+          recoveryCode: 'BAD-CODE',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('renewTokens throws on expired refresh token', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_grant',
+            'error_description': 'Refresh token has been revoked',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await expectLater(
+        () => api.renewTokens(refreshToken: 'expired_rt'),
+        throwsA(isA<ApiException>().having(
+          (e) => e.isRefreshTokenDeleted,
+          'isRefreshTokenDeleted',
+          true,
+        )),
+      );
+    });
+
+    test('exchangeCode throws on invalid code', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_grant',
+            'error_description': 'Invalid authorization code.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.exchangeCode(
+          code: 'bad_code',
+          codeVerifier: 'verifier',
+          redirectUrl: 'myapp://callback',
+        ),
+        throwsA(isA<ApiException>().having(
+          (e) => e.isInvalidCredentials,
+          'isInvalidCredentials',
+          true,
+        )),
+      );
+    });
+
+    test('revokeToken throws on server error', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'server_error',
+            'error_description': 'Internal server error.',
+          }),
+          500,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.revokeToken(refreshToken: 'rt'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('customTokenExchange throws on invalid subject token', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_grant',
+            'error_description': 'Invalid subject token.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.customTokenExchange(
+          subjectToken: 'bad',
+          subjectTokenType: 'urn:ietf:params:oauth:token-type:jwt',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('loginWithEmailCode throws on invalid code', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_otp',
+            'error_description': 'Invalid verification code.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.loginWithEmailCode(
+          email: 'user@example.com',
+          code: 'wrong',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('loginWithSmsCode throws on invalid code', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'invalid_otp',
+            'error_description': 'Invalid verification code.',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.loginWithSmsCode(phoneNumber: '+1234567890', code: 'wrong'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('signup throws on duplicate user', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'user_exists',
+            'error_description': 'The user already exists.',
+          }),
+          409,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      expect(
+        () => api.signup(
+          email: 'existing@example.com',
+          password: 'P@ssw0rd',
+          connection: 'Username-Password-Authentication',
+        ),
+        throwsA(isA<ApiException>().having(
+          (e) => e.isAlreadyExists,
+          'isAlreadyExists',
+          true,
+        )),
+      );
+    });
+
+    // -----------------------------------------------------------------------
+    // MFA flow: login → mfa_required → extract mfaToken → challenge → verify
+    // -----------------------------------------------------------------------
+
+    test('loginWithPassword returns mfa_required with mfaToken', () async {
+      final mock = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'error': 'mfa_required',
+            'error_description': 'Multifactor authentication required.',
+            'mfa_token': 'mfa_tok_abc123',
+          }),
+          403,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      try {
+        await api.loginWithPassword(
+          usernameOrEmail: 'user@example.com',
+          password: 'secret',
+          realm: 'Username-Password-Authentication',
+        );
+        fail('Should have thrown');
+      } on ApiException catch (e) {
+        expect(e.isMultifactorRequired, true);
+        expect(e.mfaToken, 'mfa_tok_abc123');
+      }
+    });
+
+    test('full MFA OTP flow: login → mfa_required → challenge → verify',
+        () async {
+      var requestCount = 0;
+      final mock = MockClient((request) async {
+        requestCount++;
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+
+        if (requestCount == 1) {
+          // Step 1: loginWithPassword → mfa_required
+          expect(body['grant_type'],
+              'http://auth0.com/oauth/grant-type/password-realm');
+          return http.Response(
+            jsonEncode({
+              'error': 'mfa_required',
+              'error_description': 'Multifactor authentication required.',
+              'mfa_token': 'mfa_tok_flow',
+            }),
+            403,
+          );
+        } else if (requestCount == 2) {
+          // Step 2: getMfaChallenge
+          expect(request.url.path, '/mfa/challenge');
+          expect(body['mfa_token'], 'mfa_tok_flow');
+          return http.Response(
+            jsonEncode({
+              'challenge_type': 'otp',
+            }),
+            200,
+          );
+        } else {
+          // Step 3: verifyMfaOtp
+          expect(body['grant_type'],
+              'http://auth0.com/oauth/grant-type/mfa-otp');
+          expect(body['mfa_token'], 'mfa_tok_flow');
+          expect(body['otp'], '123456');
+          return http.Response(
+            jsonEncode({
+              'access_token': 'final_at',
+              'token_type': 'Bearer',
+              'expires_in': 3600,
+            }),
+            200,
+          );
+        }
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      // Step 1: Login returns mfa_required
+      String mfaToken;
+      try {
+        await api.loginWithPassword(
+          usernameOrEmail: 'user@example.com',
+          password: 'secret',
+          realm: 'Username-Password-Authentication',
+        );
+        fail('Should have thrown');
+      } on ApiException catch (e) {
+        expect(e.isMultifactorRequired, true);
+        mfaToken = e.mfaToken!;
+      }
+
+      // Step 2: Get challenge
+      final challenge = await api.getMfaChallenge(mfaToken: mfaToken);
+      expect(challenge.challengeType, 'otp');
+
+      // Step 3: Verify OTP
+      final creds = await api.verifyMfaOtp(
+        mfaToken: mfaToken,
+        otp: '123456',
+      );
+      expect(creds.accessToken, 'final_at');
+      expect(requestCount, 3);
+    });
+
+    test('full MFA OOB flow: login → mfa_required → challenge → verify OOB',
+        () async {
+      var requestCount = 0;
+      final mock = MockClient((request) async {
+        requestCount++;
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+
+        if (requestCount == 1) {
+          return http.Response(
+            jsonEncode({
+              'error': 'mfa_required',
+              'error_description': 'Multifactor authentication required.',
+              'mfa_token': 'mfa_tok_oob',
+            }),
+            403,
+          );
+        } else if (requestCount == 2) {
+          expect(request.url.path, '/mfa/challenge');
+          return http.Response(
+            jsonEncode({
+              'challenge_type': 'oob',
+              'oob_code': 'oob_code_123',
+              'binding_method': 'prompt',
+            }),
+            200,
+          );
+        } else {
+          expect(body['grant_type'],
+              'http://auth0.com/oauth/grant-type/mfa-oob');
+          expect(body['oob_code'], 'oob_code_123');
+          expect(body['binding_code'], '999888');
+          return http.Response(
+            jsonEncode({
+              'access_token': 'oob_final_at',
+              'token_type': 'Bearer',
+              'expires_in': 3600,
+            }),
+            200,
+          );
+        }
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      // Step 1
+      String mfaToken;
+      try {
+        await api.loginWithPassword(
+          usernameOrEmail: 'user@example.com',
+          password: 'secret',
+          realm: 'Username-Password-Authentication',
+        );
+        fail('Should have thrown');
+      } on ApiException catch (e) {
+        mfaToken = e.mfaToken!;
+      }
+
+      // Step 2
+      final challenge = await api.getMfaChallenge(mfaToken: mfaToken);
+      expect(challenge.challengeType, 'oob');
+      expect(challenge.oobCode, 'oob_code_123');
+
+      // Step 3
+      final creds = await api.verifyMfaOob(
+        mfaToken: mfaToken,
+        oobCode: challenge.oobCode!,
+        bindingCode: '999888',
+      );
+      expect(creds.accessToken, 'oob_final_at');
+    });
+
+    test('full MFA recovery flow: login → mfa_required → recovery code',
+        () async {
+      var requestCount = 0;
+      final mock = MockClient((request) async {
+        requestCount++;
+
+        if (requestCount == 1) {
+          return http.Response(
+            jsonEncode({
+              'error': 'mfa_required',
+              'error_description': 'Multifactor authentication required.',
+              'mfa_token': 'mfa_tok_recovery',
+            }),
+            403,
+          );
+        } else {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['grant_type'],
+              'http://auth0.com/oauth/grant-type/mfa-recovery-code');
+          expect(body['recovery_code'], 'ABCD-1234-EFGH');
+          return http.Response(
+            jsonEncode({
+              'access_token': 'recovery_final_at',
+              'token_type': 'Bearer',
+              'expires_in': 3600,
+            }),
+            200,
+          );
+        }
+      });
+
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      String mfaToken;
+      try {
+        await api.loginWithPassword(
+          usernameOrEmail: 'user@example.com',
+          password: 'secret',
+          realm: 'Username-Password-Authentication',
+        );
+        fail('Should have thrown');
+      } on ApiException catch (e) {
+        mfaToken = e.mfaToken!;
+      }
+
+      final creds = await api.verifyMfaRecoveryCode(
+        mfaToken: mfaToken,
+        recoveryCode: 'ABCD-1234-EFGH',
+      );
+      expect(creds.accessToken, 'recovery_final_at');
+    });
+
+    // -----------------------------------------------------------------------
+    // Optional parameter coverage
+    // -----------------------------------------------------------------------
+
+    test('getMfaChallenge includes challengeType and authenticatorId',
+        () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['challenge_type'], 'oob');
+        expect(body['authenticator_id'], 'sms|dev_123');
+        return http.Response(
+          jsonEncode({
+            'challenge_type': 'oob',
+            'oob_code': 'oob123',
+            'binding_method': 'prompt',
+          }),
+          200,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await api.getMfaChallenge(
+        mfaToken: 'mfa_tok',
+        challengeType: 'oob',
+        authenticatorId: 'sms|dev_123',
+      );
+    });
+
+    test('loginWithEmailCode includes audience and scopes', () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['audience'], 'https://api.example.com');
+        expect(body['scope'], contains('openid'));
+        return http.Response(
+          jsonEncode({
+            'access_token': 'at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await api.loginWithEmailCode(
+        email: 'user@example.com',
+        code: '1234',
+        audience: 'https://api.example.com',
+        scopes: {'openid', 'profile'},
+      );
+    });
+
+    test('customTokenExchange includes audience, scopes, organization',
+        () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['audience'], 'https://api.example.com');
+        expect(body['scope'], contains('openid'));
+        expect(body['organization'], 'org_abc');
+        return http.Response(
+          jsonEncode({
+            'access_token': 'at',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+          }),
+          200,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await api.customTokenExchange(
+        subjectToken: 'tok',
+        subjectTokenType: 'urn:ietf:params:oauth:token-type:jwt',
+        audience: 'https://api.example.com',
+        scopes: {'openid'},
+        organization: 'org_abc',
+      );
+    });
+
+    test('signup includes username and userMetadata', () async {
+      final mock = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['username'], 'johndoe');
+        expect(body['user_metadata'], {'plan': 'premium'});
+        return http.Response(
+          jsonEncode({
+            '_id': 'id1',
+            'email': 'john@example.com',
+            'email_verified': false,
+          }),
+          200,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await api.signup(
+        email: 'john@example.com',
+        password: 'P@ssw0rd',
+        connection: 'Username-Password-Authentication',
+        username: 'johndoe',
+        userMetadata: {'plan': 'premium'},
+      );
+    });
+
+    test('getUserInfo with custom tokenType', () async {
+      final mock = MockClient((request) async {
+        expect(request.headers['Authorization'], 'DPoP access_tok');
+        return http.Response(
+          jsonEncode({
+            'sub': 'auth0|user1',
+            'name': 'Test',
+          }),
+          200,
+        );
+      });
+      httpClient = createHttpClient(mock);
+      api = AuthApi(client: httpClient, clientId: 'test_client');
+
+      await api.getUserInfo(accessToken: 'access_tok', tokenType: 'DPoP');
     });
   });
 }

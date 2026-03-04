@@ -98,6 +98,36 @@ class AuthApi {
     return Challenge.fromJson(json);
   }
 
+  Future<Credentials> verifyMfaOob({
+    required String mfaToken,
+    required String oobCode,
+    String? bindingCode,
+  }) async {
+    final body = <String, dynamic>{
+      'grant_type': 'http://auth0.com/oauth/grant-type/mfa-oob',
+      'client_id': _clientId,
+      'mfa_token': mfaToken,
+      'oob_code': oobCode,
+      if (bindingCode != null) 'binding_code': bindingCode,
+    };
+    final json = await _client.post('/oauth/token', body);
+    return Credentials.fromJson(json);
+  }
+
+  Future<Credentials> verifyMfaRecoveryCode({
+    required String mfaToken,
+    required String recoveryCode,
+  }) async {
+    final body = <String, dynamic>{
+      'grant_type': 'http://auth0.com/oauth/grant-type/mfa-recovery-code',
+      'client_id': _clientId,
+      'mfa_token': mfaToken,
+      'recovery_code': recoveryCode,
+    };
+    final json = await _client.post('/oauth/token', body);
+    return Credentials.fromJson(json);
+  }
+
   Future<void> startPasswordlessEmail({
     required String email,
     String type = 'code',
@@ -319,6 +349,50 @@ class AuthApi {
     await _client.post(
       '/me/v1/authentication-methods/passkey%7Cnew/verify',
       body,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Token Revocation
+  // ---------------------------------------------------------------------------
+
+  Future<void> revokeToken({required String refreshToken}) async {
+    final body = <String, dynamic>{
+      'client_id': _clientId,
+      'token': refreshToken,
+    };
+    await _client.post('/oauth/revoke', body);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Native Social Login Helpers
+  // ---------------------------------------------------------------------------
+
+  Future<Credentials> loginWithAppleToken({
+    required String authorizationCode,
+    String? audience,
+    Set<String> scopes = const {},
+  }) {
+    return customTokenExchange(
+      subjectToken: authorizationCode,
+      subjectTokenType:
+          'http://auth0.com/oauth/token-type/apple-authz-code',
+      audience: audience,
+      scopes: scopes,
+    );
+  }
+
+  Future<Credentials> loginWithFacebookToken({
+    required String accessToken,
+    String? audience,
+    Set<String> scopes = const {},
+  }) {
+    return customTokenExchange(
+      subjectToken: accessToken,
+      subjectTokenType:
+          'http://auth0.com/oauth/token-type/facebook-info-session-access-token',
+      audience: audience,
+      scopes: scopes,
     );
   }
 
