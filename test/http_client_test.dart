@@ -94,9 +94,27 @@ void main() {
       client.close();
     });
 
-    test('throws ApiException on invalid JSON response', () async {
+    test('returns empty map on 200 with non-JSON body', () async {
+      // Auth0 endpoints like /dbconnections/change_password return plain text
+      // on success. The HTTP client treats non-JSON 2xx as empty success.
       final mockClient = MockClient((request) async {
-        return http.Response('not json', 200);
+        return http.Response('We just sent you an email.', 200);
+      });
+
+      final client = Auth0HttpClient(
+        domain: 'test.auth0.com',
+        clientId: 'client123',
+        httpClient: mockClient,
+      );
+
+      final result = await client.post('/dbconnections/change_password', {});
+      expect(result, isEmpty);
+      client.close();
+    });
+
+    test('throws ApiException on non-JSON error response', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('not json', 500);
       });
 
       final client = Auth0HttpClient(
