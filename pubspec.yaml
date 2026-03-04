@@ -2,7 +2,7 @@ name: auth0_flutter_auth
 description: Auth0 SDK for Flutter — pure Dart HTTP with minimal native bridges for secure browser and DPoP.
 version: 0.1.0
 homepage: https://auth0.com
-repository: https://github.com/nicosabena/auth0-flutter/tree/main/auth0_flutter_auth
+repository: https://github.com/Mmckelve45/auth0_flutter_auth
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
