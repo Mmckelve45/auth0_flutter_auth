@@ -94,6 +94,11 @@ class Auth0HttpClient {
     try {
       json = jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
+      // Some Auth0 endpoints (e.g. /dbconnections/change_password) return
+      // plain text on success. Treat non-JSON 2xx as an empty success.
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {};
+      }
       throw ApiException(
         message: 'Invalid JSON response',
         statusCode: response.statusCode,
