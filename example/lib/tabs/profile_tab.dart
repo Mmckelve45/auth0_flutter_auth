@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
+// ignore: implementation_imports
 import 'package:auth0_flutter_auth/src/jwt/jwt_decoder.dart';
 import '../main.dart';
 import '../widgets/token_card.dart';
@@ -10,7 +11,7 @@ void _log(String message) {
 }
 
 class ProfileTab extends StatefulWidget {
-  const ProfileTab();
+  const ProfileTab({super.key});
 
   @override
   State<ProfileTab> createState() => _ProfileTabState();

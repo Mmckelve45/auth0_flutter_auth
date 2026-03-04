@@ -1,3 +1,6 @@
+import '../jwt/jwt_decoder.dart';
+import 'user_profile.dart';
+
 class Credentials {
   final String accessToken;
   final String tokenType;
@@ -14,6 +17,15 @@ class Credentials {
     required this.expiresAt,
     this.scopes = const {},
   });
+
+  UserProfile? get user {
+    if (idToken == null) return null;
+    try {
+      return UserProfile.fromJson(JwtDecoder(idToken!).payload);
+    } catch (_) {
+      return null;
+    }
+  }
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
 

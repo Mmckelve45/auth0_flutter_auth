@@ -72,7 +72,7 @@ void main() {
     testWidgets('getUserInfo to fake domain returns network error',
         (tester) async {
       try {
-        await client.api.getUserInfo('fake_token');
+        await client.api.getUserInfo(accessToken: 'fake_token');
         fail('Should have thrown');
       } on ApiException catch (e) {
         expect(e.isNetworkError, true);

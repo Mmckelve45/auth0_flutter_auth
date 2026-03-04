@@ -3,8 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
-import 'package:auth0_flutter_auth/src/api/http_client.dart';
-import 'package:auth0_flutter_auth/src/web_auth/web_auth.dart';
 import 'package:auth0_flutter_auth/src/web_auth/browser_platform.dart';
 
 /// Mock browser that captures the launched URL and returns a configurable callback.
@@ -44,6 +42,7 @@ void main() {
   /// Helper to create a WebAuth with a mock HTTP backend.
   /// The [onTokenExchange] callback receives the request body and returns
   /// the token response JSON.
+  // ignore: no_leading_underscores_for_local_identifiers
   WebAuth _createWebAuth({
     required Map<String, dynamic> Function(Map<String, dynamic> body) onTokenExchange,
   }) {

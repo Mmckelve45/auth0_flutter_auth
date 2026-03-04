@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
-import 'package:auth0_flutter_auth/src/api/http_client.dart';
 
 void main() {
   late Auth0HttpClient httpClient;
@@ -280,7 +279,7 @@ void main() {
       httpClient = createHttpClient(mock);
       api = AuthApi(client: httpClient, clientId: 'test_client');
 
-      final profile = await api.getUserInfo('access_tok');
+      final profile = await api.getUserInfo(accessToken: 'access_tok');
       expect(profile.sub, 'auth0|user1');
       expect(profile.name, 'Test User');
     });

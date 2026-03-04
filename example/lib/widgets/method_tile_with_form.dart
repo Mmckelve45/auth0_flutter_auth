@@ -14,6 +14,7 @@ class MethodTileWithForm extends StatefulWidget {
     required this.fields,
     this.defaults = const {},
     required this.onRun,
+    super.key,
   });
 
   @override

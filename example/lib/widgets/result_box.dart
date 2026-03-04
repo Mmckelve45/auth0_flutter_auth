@@ -5,7 +5,7 @@ class ResultBox extends StatelessWidget {
   final String text;
   final bool isError;
 
-  const ResultBox({required this.text, this.isError = false});
+  const ResultBox({required this.text, this.isError = false, super.key});
 
   @override
   Widget build(BuildContext context) {

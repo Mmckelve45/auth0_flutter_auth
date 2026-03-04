@@ -29,7 +29,7 @@ class BrowserPlatform {
       }
       throw WebAuthException(
         message: e.message ?? 'Unknown web auth error (${e.code})',
-        code: 'a0.${e.code?.toLowerCase() ?? 'unknown'}',
+        code: 'a0.${e.code.toLowerCase()}',
         cause: e,
       );
     }

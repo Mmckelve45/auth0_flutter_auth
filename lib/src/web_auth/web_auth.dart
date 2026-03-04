@@ -11,7 +11,6 @@ import 'pkce.dart';
 
 class WebAuth {
   final String _domain;
-  final String _clientId;
   final AuthApi _api;
   final JwtValidator? _jwtValidator;
   final BrowserPlatform _browser;
@@ -30,7 +29,6 @@ class WebAuth {
     JwtValidator? jwtValidator,
     BrowserPlatform? browser,
   })  : _domain = domain,
-        _clientId = clientId,
         _api = api,
         _jwtValidator = jwtValidator,
         _browser = browser ?? BrowserPlatform(),
@@ -46,6 +44,8 @@ class WebAuth {
     bool preferEphemeral = false,
     int? maxAge,
     Map<String, String>? parameters,
+    bool useHTTPS = false,
+    String? scheme,
   }) async {
     final effectiveRedirectUrl = redirectUrl ?? _defaultRedirectUrl;
     final pkce = Pkce.generate();
@@ -65,7 +65,8 @@ class WebAuth {
       parameters: parameters,
     );
 
-    final callbackScheme = Uri.parse(effectiveRedirectUrl).scheme;
+    final callbackScheme = scheme
+        ?? (useHTTPS ? 'https' : Uri.parse(effectiveRedirectUrl).scheme);
 
     final callbackUrlString = await _browser.launchAuth(
       url: authorizeUrl.toString(),

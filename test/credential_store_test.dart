@@ -3,15 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
-import 'package:auth0_flutter_auth/src/api/http_client.dart';
 import 'package:auth0_flutter_auth/src/credentials/token_refresher.dart';
 
 // Helper to build a fake AuthApi backed by a MockClient whose renewTokens
 // response is controlled by [onRenew].
 AuthApi _buildFakeApi(Credentials Function() onRenew) {
-  var callCount = 0;
   final mock = MockClient((request) async {
-    callCount++;
     try {
       final creds = onRenew();
       return http.Response(jsonEncode(creds.toJson()), 200);

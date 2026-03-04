@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
-import 'package:auth0_flutter_auth/src/api/http_client.dart';
 
 // Since flutter_secure_storage and local_auth require platform channels,
 // we test CredentialStore indirectly by testing the public contract

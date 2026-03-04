@@ -13,7 +13,6 @@ class WebAuthException extends Auth0Exception {
   static const _codeStateMismatch = 'a0.state_mismatch';
   static const _codeIdTokenValidation = 'a0.id_token_validation';
   static const _codeNoCallbackUrl = 'a0.no_callback_url';
-  static const _codePkceNotAvailable = 'a0.pkce_not_available';
   static const _codeUnknown = 'a0.unknown';
 
   bool get isCancelled => code == _codeCancelled;

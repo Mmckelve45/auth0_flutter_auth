@@ -8,6 +8,7 @@ class Auth0ClientOptions {
   final Set<String> scopes;
   final CredentialStoreOptions? credentialStoreOptions;
   final Duration? httpTimeout;
+  final Duration? jwtLeeway;
 
   const Auth0ClientOptions({
     this.enableDPoP = false,
@@ -17,5 +18,6 @@ class Auth0ClientOptions {
     this.scopes = const {'openid', 'profile', 'email'},
     this.credentialStoreOptions,
     this.httpTimeout,
+    this.jwtLeeway,
   });
 }

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 class RawTokenCard extends StatelessWidget {
   final String title;
   final String token;
-  const RawTokenCard({required this.title, required this.token});
+  const RawTokenCard({required this.title, required this.token, super.key});
 
   @override
   Widget build(BuildContext context) {

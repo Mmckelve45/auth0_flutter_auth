@@ -11,6 +11,22 @@ import '../exceptions/credential_store_exception.dart';
 import 'credential_store_options.dart';
 import 'token_refresher.dart';
 
+KeychainAccessibility? _mapAccessibility(SecureStorageAccessibility? value) {
+  if (value == null) return null;
+  switch (value) {
+    case SecureStorageAccessibility.afterFirstUnlock:
+      return KeychainAccessibility.first_unlock;
+    case SecureStorageAccessibility.afterFirstUnlockThisDevice:
+      return KeychainAccessibility.first_unlock_this_device;
+    case SecureStorageAccessibility.whenUnlocked:
+      return KeychainAccessibility.unlocked;
+    case SecureStorageAccessibility.whenUnlockedThisDevice:
+      return KeychainAccessibility.unlocked_this_device;
+    case SecureStorageAccessibility.whenPasscodeSetThisDevice:
+      return KeychainAccessibility.passcode;
+  }
+}
+
 class CredentialStore {
   final FlutterSecureStorage _storage;
   final LocalAuthentication _localAuth;
@@ -29,9 +45,24 @@ class CredentialStore {
     LocalAuthentication? localAuth,
   })  : _api = api,
         _options = options ?? const CredentialStoreOptions(),
-        _storage = storage ?? const FlutterSecureStorage(),
+        _storage = storage ?? _buildStorage(options),
         _localAuth = localAuth ?? LocalAuthentication(),
         _refresher = TokenRefresher(api: api);
+
+  static FlutterSecureStorage _buildStorage(CredentialStoreOptions? options) {
+    if (options == null) return const FlutterSecureStorage();
+    final accessibility = _mapAccessibility(options.accessibility);
+    return FlutterSecureStorage(
+      iOptions: IOSOptions(
+        groupId: options.accessGroup,
+        accessibility: accessibility ?? KeychainAccessibility.unlocked,
+      ),
+      mOptions: MacOsOptions(
+        groupId: options.accessGroup,
+        accessibility: accessibility ?? KeychainAccessibility.unlocked,
+      ),
+    );
+  }
 
   String get _storageKey => _options.storageKey;
 
@@ -215,9 +246,9 @@ class CredentialStore {
 
       final didAuthenticate = await _localAuth.authenticate(
         localizedReason: _options.biometricPrompt,
-        options: const AuthenticationOptions(
+        options: AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly: _options.biometricOnly,
         ),
       );
 

@@ -46,6 +46,7 @@ class Auth0Client {
       issuer: 'https://$domain/',
       audience: clientId,
       jwksClient: _jwksClient,
+      leeway: _options.jwtLeeway ?? const Duration(seconds: 60),
     );
 
     _webAuth = WebAuth(

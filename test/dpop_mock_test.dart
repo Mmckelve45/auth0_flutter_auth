@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:auth0_flutter_auth/src/dpop/dpop.dart';
 import 'package:auth0_flutter_auth/src/dpop/dpop_platform.dart';
 import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
 

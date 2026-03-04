@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// ignore: implementation_imports
 import 'package:auth0_flutter_auth/src/jwt/jwt_decoder.dart';
 
 class TokenCard extends StatefulWidget {
   final String title;
   final String token;
-  const TokenCard({required this.title, required this.token});
+  const TokenCard({required this.title, required this.token, super.key});
 
   @override
   State<TokenCard> createState() => _TokenCardState();

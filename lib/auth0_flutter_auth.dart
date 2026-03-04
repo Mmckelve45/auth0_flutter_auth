@@ -1,5 +1,3 @@
-library auth0_flutter_auth;
-
 // Main entry point
 export 'src/auth0_client.dart';
 export 'src/auth0_client_options.dart';

@@ -53,7 +53,7 @@ class JwtDecoder {
         normalized += '=';
         break;
       default:
-        throw FormatException('Invalid base64url length');
+        throw const FormatException('Invalid base64url length');
     }
     return base64Decode(normalized);
   }

@@ -13,6 +13,7 @@ class MethodTile extends StatefulWidget {
     required this.name,
     required this.description,
     required this.onRun,
+    super.key,
   });
 
   @override

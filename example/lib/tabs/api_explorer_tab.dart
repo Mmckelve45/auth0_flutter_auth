@@ -1,17 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:auth0_flutter_auth/auth0_flutter_auth.dart';
 import '../main.dart';
 import '../widgets/method_tile.dart' show MethodTile, truncate;
 import '../widgets/method_tile_with_form.dart';
 
-void _log(String message) {
-  debugPrint('[Auth0Example] $message');
-}
-
 class ApiExplorerTab extends StatefulWidget {
-  const ApiExplorerTab();
+  const ApiExplorerTab({super.key});
 
   @override
   State<ApiExplorerTab> createState() => _ApiExplorerTabState();
@@ -83,7 +78,7 @@ class _ApiExplorerTabState extends State<ApiExplorerTab> {
           onRun: () async {
             final creds = await auth0.credentials.getCredentials();
             if (creds == null) return 'No credentials — log in first';
-            final user = await auth0.api.getUserInfo(creds.accessToken);
+            final user = await auth0.api.getUserInfo(accessToken: creds.accessToken);
             return const JsonEncoder.withIndent('  ').convert(user.toJson());
           },
         ),

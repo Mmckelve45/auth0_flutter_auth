@@ -43,7 +43,7 @@ String _base64UrlEncode(List<int> bytes) {
 Uint8List _signRS256(Uint8List data, RSAPrivateKey privateKey) {
   final signer = RSASigner(SHA256Digest(), '0609608648016503040201');
   signer.init(true, PrivateKeyParameter<RSAPrivateKey>(privateKey));
-  final signature = signer.generateSignature(data) as RSASignature;
+  final signature = signer.generateSignature(data);
   return signature.bytes;
 }
 
@@ -415,7 +415,7 @@ void main() {
 
       // Tamper with signature by replacing last character
       final parts = token.split('.');
-      final tamperedSig = parts[2].substring(0, parts[2].length - 1) + 'X';
+      final tamperedSig = '${parts[2].substring(0, parts[2].length - 1)}X';
       token = '${parts[0]}.${parts[1]}.$tamperedSig';
 
       final validator = JwtValidator(

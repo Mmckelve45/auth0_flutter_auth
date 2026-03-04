@@ -277,7 +277,7 @@ try {
 Fetch authenticated user's profile:
 
 ```dart
-final userProfile = await auth0.api.getUserInfo(accessToken);
+final userProfile = await auth0.api.getUserInfo(accessToken: accessToken);
 print('User: ${userProfile.name}');
 print('Email: ${userProfile.email}');
 ```
@@ -709,7 +709,7 @@ void fetchUserProfile() async {
     }
 
     // Fetch from API
-    final profile = await auth0.api.getUserInfo(credentials.accessToken);
+    final profile = await auth0.api.getUserInfo(accessToken: credentials.accessToken);
     print('Name: ${profile.name}');
     print('Email: ${profile.email}');
     print('Avatar: ${profile.picture}');

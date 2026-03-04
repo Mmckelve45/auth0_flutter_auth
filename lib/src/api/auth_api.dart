@@ -185,10 +185,17 @@ class AuthApi {
     return DatabaseUser.fromJson(json);
   }
 
-  Future<UserProfile> getUserInfo(String accessToken) async {
+  Future<UserProfile> getUserInfo({
+    required String accessToken,
+    String tokenType = 'Bearer',
+    Map<String, String> parameters = const {},
+  }) async {
+    final path = parameters.isEmpty
+        ? '/userinfo'
+        : '/userinfo?${Uri(queryParameters: parameters).query}';
     final json = await _client.get(
-      '/userinfo',
-      extraHeaders: {'Authorization': 'Bearer $accessToken'},
+      path,
+      extraHeaders: {'Authorization': '$tokenType $accessToken'},
     );
     return UserProfile.fromJson(json);
   }
@@ -228,6 +235,7 @@ class AuthApi {
   Future<SSOCredentials> ssoExchange({
     required String refreshToken,
     Map<String, String>? parameters,
+    Map<String, String>? headers,
   }) async {
     final body = <String, dynamic>{
       'grant_type':
@@ -236,7 +244,7 @@ class AuthApi {
       'refresh_token': refreshToken,
       ...?parameters,
     };
-    final json = await _client.post('/oauth/token', body);
+    final json = await _client.post('/oauth/token', body, extraHeaders: headers);
     return SSOCredentials.fromJson(json);
   }
 

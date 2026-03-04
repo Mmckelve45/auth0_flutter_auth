@@ -34,10 +34,10 @@ void main() {
       final client = Auth0Client(
         domain: 'test.auth0.com',
         clientId: 'test_client',
-        options: Auth0ClientOptions(
+        options: const Auth0ClientOptions(
           audience: 'https://api.example.com',
           scopes: {'openid', 'profile'},
-          httpTimeout: const Duration(seconds: 30),
+          httpTimeout: Duration(seconds: 30),
         ),
       );
 

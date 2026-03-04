@@ -237,7 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final creds = await auth0.credentials.getCredentials();
       if (creds == null) return;
-      final profile = await auth0.api.getUserInfo(creds.accessToken);
+      final profile = await auth0.api.getUserInfo(accessToken: creds.accessToken);
       setState(() {
         _user = profile;
         _message = 'User info fetched from /userinfo endpoint';
